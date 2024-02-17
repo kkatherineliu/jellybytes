@@ -31,7 +31,13 @@ def handle_reccomend_sunscreen():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Find UV index of the area
+# Find UV index of their location
+# def calculate_interval(region, spf):
+# connect/relate to another API to find the UV index and compare with spf index
+# to calculate how often to send a notification through flutter!
+    
+# Calculate time until burning based on the SPF they have?
+# ^^ might be better to have it in the Dart portion instead of latency with the request since it's a simple calculation anyways
 
 ########################################################################
 ############### Generating a recommendation for the user ###############
@@ -41,9 +47,8 @@ def handle_reccomend_sunscreen():
 def recommend_sunscreen(complexion, skin_type, location):
     recommendation = co.chat(
         message=f'''You are a dermatologist. Given the following notes about a user,
-        please recommend ONE sunscreen. Indicate the name, SPF,
-        and ONE sentence to explain for why it is suitable their skin and location needs.
-        Do not include ant other information or repeat the SPF as part of the description. 
+        please recommend ONE non-greasy sunscreen. Indicate the name, SPF,
+        and ONE short sentence to explain for why it is suitable their skin and location needs.
         
         Fitzpatrick Skin Type: {complexion}
         Skin Type: {skin_type}
@@ -70,9 +75,10 @@ def structure_output(recommendation):
         co.generate,
         model="command",
         prompt_params={"recommendation": recommendation},
-        max_tokens=50,
+        max_tokens=256,
         temperature=0.2
     )
+    # print(validated_response)
     return validated_response # dictionary data type
 
 # JSON Schema following Pydantic form
@@ -84,12 +90,8 @@ class Sunscreen(BaseModel):
     )
     explanation: str = Field(description="Why does the sunscreen work well for patient's skin type and location?")
 
-# def calculate_interval(region, spf):
-# connect/relate to another API to find the UV index and compare with spf index
-# to calculate how often to send a notification through flutter!
-
 ### for testing with output structure ###
 # print(recommend_sunscreen("Type 1", "dry", "San Francisco"))
-# print(recommend_sunscreen("Type 3", "oily", "Toronto"))
+print(recommend_sunscreen("Type 3", "dry", "Toronto"))
 # print(recommend_sunscreen("Type 2", "normal", "Toronto"))
-print(recommend_sunscreen("Type 4", "acne-prone", "Australia"))
+# recommend_sunscreen("Type 4", "acne-prone", "Australia")
