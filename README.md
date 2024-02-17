@@ -11,13 +11,20 @@ Built with:
 - OpenWeatherMap
 
 
-Things needed to run the code:
+Things needed to run the backend:
 - set up python virtual environment (in VS Code)
 - install cohere
 - install guardrails-ai
 - install pydantic
 - install flask
 - install pyowm
+
+Frontend (React Native/Expo ver):
+- downloade node.js
+- ^^ some weird npx expo code thing
+- ^^ follow instructions and create expo go thing
+- navigate to directory of my-app -> npm run web
+  
 - (and then the Dart and Flutter App setup portion?)
 
 Run `flask run` or `python main.py` in the terminal to start the server.
