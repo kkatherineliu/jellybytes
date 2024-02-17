@@ -1,12 +1,23 @@
 import config
 import cohere
+import guardrails as gd
+from guardrails.validators import ValidRange, ValidChoices
+from pydantic import BaseModel, Field
+from rich import print
+from typing import List
 from flask import request, jsonify, Flask
-
-# setting up the connection to Cohere API
-co = cohere.Client(config.api_key)
 
 # Flask for endpoints
 app = Flask(__name__)
+
+class Sunscreen(BaseModel):
+    name: str = Field(..., description="Name of the sunscreen")
+    spf: str = Field(
+        ..., 
+        description="What is the SPF of the sunscreen?", 
+        validators=[ValidChoices(["15", "30", "45", "50"], on_fail="reask")]
+    )
+    explanations: str = Field(..., description="Why does the sunscreen work well for patient's skin type and location?")
 
 # Flask endpoint to produce a sunscreen recommendation
 @app.route('/recommend-sunscreen', methods=['POST'])
@@ -14,34 +25,69 @@ def handle_reccomend_sunscreen():
     try:
         skin_type = request.json.get('skin_type')
         complexion = request.json.get('complexion')
-        region = request.json.get('region')
-        sunlight_exposure = request.json.get('sunlight_exposure')
+        location = request.json.get('location')
 
-        response = recommend_sunscreen(skin_type, complexion, region, sunlight_exposure)
+        response = recommend_sunscreen(skin_type, complexion, location)
 
         return jsonify({'recommendation': response}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+def validate_output(recommendation):
+    co = cohere.Client(config.api_key) # not sure if putting another one here helps or not
+
+    PROMPT = '''Given the following sunscreen recommendation,
+    please extract a dictionary that contains the sunscreens's information.
+
+    ${recommendation}
+    ${gr.complete_json_suffix_v2}
+    '''
+
+    # using Guardrails AI for structured output, similar to Pydantic
+    guard = gd.Guard.from_pydantic(Sunscreen, prompt=PROMPT)
+    print(guard.base_prompt)
+    
+    raw_llm_output, validated_ouput = guard(
+        co.chat,
+        prompt_params={"recommendation": recommendation},
+        model='command',
+        connectors=[{"id": "web-search"}],
+        prompt_truncation="AUTO",
+	    temperature=0.2
+    )
+    # return(validated_ouput)
+    print(validated_ouput)
+
+    # to look at the validation behind the scenes?
+    # print(guard.state.most_recent_call.history[0].rich_group)
+    # guard.guard_state.most_recent_call.tree
 
 # calling the Cohere /chat endpoint to generate a response
-def recommend_sunscreen(skin_type, complexion, region, sunlight_exposure):
+def recommend_sunscreen(complexion, skin_type, location):
+
+    # setting up the connection to Cohere API
+    co = cohere.Client(config.api_key)
+    
     response = co.chat(
         # if skin_type has multi-select, might be a list so you might have to parse
-        # instead of creating a super long prompt, look into structured LLM outputs (pydantic? guardrails?)
-        # because I don't think all the additional specificity is improving the format that much
-        # 
-        message = f'''You are a dermatologist, please recommend one singular sunscreen for me. I have 
-        {skin_type} {complexion} skin who lives in {region} and usually spends around {sunlight_exposure} hours outside under the sun. 
-        Indicate the name and SPF of the sunscreen first, then a 1-2 short sentences explaining why it is a good fit. 
-        Please do not include any additional sentences.
 
-        Follow this formatting: [Sunscreen Name] [SPF] - [Explanation]''',
+        message = 
+        f"""You are a dermatologist. Given the following notes about a user,
+        please reccomend a sunscreen that suits their skin and location needs and provide the
+        sunscreen name, spf, and an explanation justifying the recommended choice.
+        
+        Fitzpatrick Skin Type: {complexion}
+        Skin Type: {skin_type}
+        Location: {location}
+        """,
 	    model="command",
         connectors=[{"id": "web-search"}], # can make custom connectors with sunscreen-relevant information
         prompt_truncation="AUTO",
 	    temperature=0.2 # can change, higher = more randomness
     )
-    return response.text
+
+    recommendation = str(response.text)
+    validate_output(recommendation)
 
 
 # def calculate_interval(region, spf):
@@ -49,9 +95,8 @@ def recommend_sunscreen(skin_type, complexion, region, sunlight_exposure):
 # to calculate how often to send a notification through flutter!
 
 ### for testing with output structure ###
-# print(recommend_sunscreen("oily", "tanned", "San Francisco", "7"))
-# print(recommend_sunscreen("senstive dry", "dark brown", "Toronto", "2"))
-# print(recommend_sunscreen("acne-pronce", "pale", "Mexico", "5"))
+recommend_sunscreen("Type 1", "dry", "San Francisco")
+# print(recommend_sunscreen("Type 3", "oily", "Toronto"))
 
 
 ## previously part of the prompt but didn't seem to properly structure the response enough of the time
