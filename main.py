@@ -6,9 +6,7 @@ from guardrails.validators import ValidChoices
 from pydantic import BaseModel, Field
 # from rich import print
 from flask import request, jsonify, Flask
-
-# setting up the connection to Cohere API
-co = cohere.Client(config.api_key)
+import requests
 
 #########################################################################
 ############################ Flask endpoints ############################
@@ -16,35 +14,99 @@ co = cohere.Client(config.api_key)
 
 app = Flask(__name__)
 
+# Find UV Index based on location
+@app.route('/uv-index', methods=['GET'])
+def get_uv_index():
+    try:
+        location = request.args.get('location')
+        response = find_uv_index(location)
+
+        return jsonify({'response': response}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
 # Produce sunscreen recommendation
-@app.route('/recommend-sunscreen', methods=['POST'])
-def handle_reccomend_sunscreen():
+@app.route('/sunscreen', methods=['POST'])
+def create_sunscreen():
     try:
         skin_type = request.json.get('skin_type')
         complexion = request.json.get('complexion')
-        region = request.json.get('region')
-        sunlight_exposure = request.json.get('sunlight_exposure')
+        location = request.json.get('location')
 
-        response = recommend_sunscreen(skin_type, complexion, region, sunlight_exposure)
+        response = recommend_sunscreen(skin_type, complexion, location)
 
-        return jsonify({'recommendation': response}), 200
+        return jsonify({'response': response}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-# Find UV index of their location
-# def calculate_interval(region, spf):
-# connect/relate to another API to find the UV index and compare with spf index
-# to calculate how often to send a notification through flutter!
     
+# Find UV index of their location
+
+########################################################################
+################ Finding the UV Index of their location ################
+########################################################################
+def find_uv_index(location):
+    # Define your headers
+    headers = {
+        "x-access-token": config.api_key_uv,
+        "Content-Type": "application/json"
+    }
+    params = {}
+
+    if (location == "Toronto"):
+        params = {
+        "lat": 51.5, 
+        "lng": -0.11, 
+        "alt": 100,
+        "dt": "" 
+        }
+    elif (location == "Vancouver"):
+        params = {
+        "lat": 51.5, 
+        "lng": -0.11,
+        "alt": 100,
+        "dt": ""
+        }
+    elif (location == "Montreal"):
+        params = {
+        "lat": 51.5,
+        "lng": -0.11,
+        "alt": 100,
+        "dt": ""
+        }
+    else:
+        pass # how to return an error so that the Flask thing goes to 500
+    
+    response = requests.get("https://api.openuv.io/api/v1/uv", headers=headers, params=params)
+
+    # Check if the request was successful
+    if response.status_code == 200:
+        return response.json() # should i reduce this to only return the UV so its easier for front end?
+    else:
+        print(f'Error: {response.status_code}', response.text) # not sure if this is the right way to return
+
+# returns the time in minutes before reapplying
+def reapply_interval(uv):
+    if (uv <= 5):
+        return 120
+    elif (uv <= 8):
+        return 90
+    else:
+        return 75
+
 # Calculate time until burning based on the SPF they have?
 # ^^ might be better to have it in the Dart portion instead of latency with the request since it's a simple calculation anyways
-
+# to calculate how often to send a notification through flutter!
+    
 ########################################################################
 ############### Generating a recommendation for the user ###############
 ########################################################################
 
 # Interacting with Cohere /chat endpoint to generate a response
 def recommend_sunscreen(complexion, skin_type, location):
+    
+    # setting up the connection to Cohere API
+    co = cohere.Client(config.api_key_cohere)
+
     recommendation = co.chat(
         message=f'''You are a dermatologist. Given the following notes about a user,
         please recommend ONE non-greasy sunscreen. Indicate the name, SPF,
