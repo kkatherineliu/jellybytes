@@ -37,7 +37,7 @@ def handle_reccomend_sunscreen():
 # to calculate how often to send a notification through flutter!
     
 # Calculate time until burning based on the SPF they have?
-# ^^ might be better to have it in the 
+# ^^ might be better to have it in the Dart portion instead of latency with the request since it's a simple calculation anyways
 
 ########################################################################
 ############### Generating a recommendation for the user ###############
@@ -69,7 +69,7 @@ def structure_output(recommendation):
 
     # using Guardrails AI for structured output
     guard = gd.Guard.from_pydantic(output_class=Sunscreen, prompt=PROMPT)
-    print(guard.base_prompt)
+    # print(guard.base_prompt)
 
     raw_llm_response, validated_response, *rest = guard(
         co.generate,
