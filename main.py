@@ -1,12 +1,19 @@
+#### imports ####
 import config
+
+# LLM sunscreen recommendations
 import cohere
-# import json
 import guardrails as gd
 from guardrails.validators import ValidChoices
 from pydantic import BaseModel, Field
-# from rich import print
+
+# endpoints and API interaction
 from flask import request, jsonify, Flask
-import requests
+from pyowm.owm import OWM
+
+#### constants ####
+TEMPERATURE = 0
+UV_INDEX = 1
 
 #########################################################################
 ############################ Flask endpoints ############################
@@ -14,13 +21,33 @@ import requests
 
 app = Flask(__name__)
 
+# Find temperature of the location
+@app.route('/temperature', methods=['GET']) # not sure how to send arguments over yet
+def get_temperature():
+    try:
+        location = request.args.get('location')
+        response = find_weather(location, TEMPERATURE)
+        return jsonify({'response': response}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
 # Find UV Index based on location
 @app.route('/uv-index', methods=['GET'])
 def get_uv_index():
     try:
         location = request.args.get('location')
-        response = find_uv_index(location)
+        response = find_weather(location, UV_INDEX)
+        return jsonify({'response': response}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
+# Determine how often to reapply
+@app.route('/reapply-frequency', methods=['GET']) # not sure if i should use get or post
+def get_reapply_interval():
+    try:
+        uv = request.args.get('uv')
+        complexion = request.args.get('complexion')
+        response = reapply_interval(uv, complexion)
         return jsonify({'response': response}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -32,81 +59,59 @@ def create_sunscreen():
         skin_type = request.json.get('skin_type')
         complexion = request.json.get('complexion')
         location = request.json.get('location')
-
         response = recommend_sunscreen(skin_type, complexion, location)
-
         return jsonify({'response': response}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
-# Find UV index of their location
 
 ########################################################################
-################ Finding the UV Index of their location ################
+################### Finding the weather information ####################
 ########################################################################
-def find_uv_index(location):
-    # Define your headers
-    headers = {
-        "x-access-token": config.api_key_uv,
-        "Content-Type": "application/json"
-    }
-    params = {}
 
-    if (location == "Toronto"):
-        params = {
-        "lat": 51.5, 
-        "lng": -0.11, 
-        "alt": 100,
-        "dt": "" 
-        }
-    elif (location == "Vancouver"):
-        params = {
-        "lat": 51.5, 
-        "lng": -0.11,
-        "alt": 100,
-        "dt": ""
-        }
-    elif (location == "Montreal"):
-        params = {
-        "lat": 51.5,
-        "lng": -0.11,
-        "alt": 100,
-        "dt": ""
-        }
-    else:
-        pass # how to return an error so that the Flask thing goes to 500
+# location is a string of the city in Canada
+# type is either TEMPERATURE or UV_INDEX
+def find_weather(location, type):
+    owm = OWM(config.api_key_owm) # not activated yet so can't test
+    mgr = owm.weather_manager()
+
+    list_of_locations = mgr.geocode(location, country='CA') # just cities in Canada for now
+    location_coors = list_of_locations[0]
+    one_call = mgr.one_call(lat=location_coors.lat, lon=location_coors.lon, exclude='minutely,hourly,daily', units='metric')
     
-    response = requests.get("https://api.openuv.io/api/v1/uv", headers=headers, params=params)
-
-    # Check if the request was successful
-    if response.status_code == 200:
-        return response.json() # should i reduce this to only return the UV so its easier for front end?
-    else:
-        print(f'Error: {response.status_code}', response.text) # not sure if this is the right way to return
+    if (type == TEMPERATURE):
+        return one_call.current.temperature()
+    elif (type == UV_INDEX):
+        return one_call.current.uvi()
 
 # returns the time in minutes before reapplying
-def reapply_interval(uv):
+# complexion is one of the 6 Fitzpatrick skin types
+# uv is a positive number
+# complexion is an int between 1 to 6
+def reapply_interval(uv, complexion):
+    base_time = 0
     if (uv <= 5):
-        return 120
+        base_time = 120
     elif (uv <= 8):
-        return 90
+        base_time = 90
     else:
-        return 75
-
-# Calculate time until burning based on the SPF they have?
-# ^^ might be better to have it in the Dart portion instead of latency with the request since it's a simple calculation anyways
-# to calculate how often to send a notification through flutter!
+        base_time = 70
+    
+    if (complexion <= 2):
+        return base_time - 20
+    elif (complexion <= 4):
+        return base_time - 10
+    else:
+        return base_time
     
 ########################################################################
 ############### Generating a recommendation for the user ###############
 ########################################################################
 
-# Interacting with Cohere /chat endpoint to generate a response
-def recommend_sunscreen(complexion, skin_type, location):
-    
-    # setting up the connection to Cohere API
-    co = cohere.Client(config.api_key_cohere)
+# setting up the connection to Cohere API
+co = cohere.Client(config.api_key_cohere)
 
+# Interacting with Cohere /chat endpoint to generate a response based on user's needs
+def recommend_sunscreen(complexion, skin_type, location):
     recommendation = co.chat(
         message=f'''You are a dermatologist. Given the following notes about a user,
         please recommend ONE non-greasy sunscreen. Indicate the name, SPF,
@@ -123,7 +128,7 @@ def recommend_sunscreen(complexion, skin_type, location):
     )
     return structure_output(recommendation.text)
 
-# Structuring output as a JSON for easy use with front end
+# Structuring output as a JSON for better transmission of information
 def structure_output(recommendation):
     PROMPT = """Please extract a dictionary that contains the sunscreens's information. 
     ${recommendation}
@@ -141,7 +146,7 @@ def structure_output(recommendation):
         temperature=0.2
     )
     # print(validated_response)
-    return validated_response # dictionary data type
+    return validated_response
 
 # JSON Schema following Pydantic form
 class Sunscreen(BaseModel):
@@ -154,6 +159,6 @@ class Sunscreen(BaseModel):
 
 ### for testing with output structure ###
 # print(recommend_sunscreen("Type 1", "dry", "San Francisco"))
-print(recommend_sunscreen("Type 3", "dry", "Toronto"))
+# print(recommend_sunscreen("Type 3", "dry", "Toronto"))
 # print(recommend_sunscreen("Type 2", "normal", "Toronto"))
 # recommend_sunscreen("Type 4", "acne-prone", "Australia")
