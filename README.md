@@ -1,35 +1,35 @@
 # Sunshine Guardian
 ElleHacks 2023 - Summer Challenge
 
-Check out our [DevPost!](www.google.com) --- change link after LOL
+Repo for frontend code: [Sunshine Guardian](https://github.com/kkatherineliu/sunshine-guardian-frontend)
+
+Check out our [DevPost!](https://devpost.com/software/sunshine-guardian) 
 
 Built with:
 - Figma
-- Flutter/Dart
+- React Native/Expo
 - Python (Flask, Pydantic, Guardrails AI)
 - Cohere
 - OpenWeatherMap
+- OpenUV
 
 
 Things needed to run the backend:
 - set up python virtual environment (in VS Code)
-- install cohere
-- install guardrails-ai
-- install pydantic
-- install flask
+- pip install cohere
+- pip install guardrails-ai
+- pip install pydantic
+- pip install flask
+- pip install flask-cors
+- pip export FLASK-APP="main.py"
+- flask run to start the server
 
-Frontend (React Native/Expo):
+Some of the commands for the frontend portion:
 - npm install
 - npm install expo@latest
 - npx expo install --fix
 - npx expo install react-native-web react-dom @expo/metro-runtime
 - npx expo start
-  
-- (and then the Dart and Flutter App setup portion?)
-
-Run `flask run` or `python main.py` in the terminal to start the server.
-
-Note that the default URL is `http://127.0.0.1:5000/` or `http://localhost:5000/`
   
 Next steps
 - finish up the mobile app functionalities
