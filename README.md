@@ -40,7 +40,5 @@ To set up + run Expo App
 - `npx expo install react-native-web react-dom @expo/metro-runtime` to enable running in the browser
 - `npx expo start` to start the app
   
-Next steps
-- finish up the mobile app functionalities
-- user authentication (Auth0)
-- deploying the server (heroku or AWS)
+## Next steps:
+- check out the [DevPost](https://devpost.com/software/sunshine-guardian) for more information
