@@ -88,7 +88,6 @@ def find_weather(location, type):
             weather_data = response.json()
             return weather_data['main']['temp']
         else:
-            # If the request failed, raise an exception or handle it as appropriate
             response.raise_for_status()
     else:
         headers = {
@@ -100,11 +99,12 @@ def find_weather(location, type):
         }
         URL = 'https://api.openuv.io/api/v1/uv'
         response = requests.get(URL, headers=headers, params=params)
+        
         if response.status_code == 200:
             uv_data = response.json()
             return uv_data['result']['uv']
         else:
-            print(f'Failed to retrieve data: HTTP {response.status_code}') # change to throwing error
+            response.raise_for_status()
 
 # uses geocoding to find the latitude and longitude of a location
 def find_coors(location):
@@ -126,9 +126,9 @@ def find_coors(location):
             lon = locations[0]['lon']
             return lat, lon
         else:
-            print(f'No location found') # change to throwing error
+            raise NameError('No location found')
     else:
-        print(f'Failed to retrieve data: HTTP {response.status_code}') # change to throwing error
+        response.raise_for_status()
 
 ## testing weather returns ##
 # print(find_weather('Toronto', TEMPERATURE))
