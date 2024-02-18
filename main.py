@@ -68,8 +68,9 @@ def create_sunscreen():
 ################### Finding the weather information ####################
 ########################################################################
 
-# location is a string of the city in Canada
+# location is a string of the user's location
 # type is either TEMPERATURE or UV_INDEX
+# returns the type of information requested from the location
 def find_weather(location, type): 
     lat, lon = find_coors(location)
 
@@ -106,7 +107,7 @@ def find_weather(location, type):
         else:
             response.raise_for_status()
 
-# uses geocoding to find the latitude and longitude of a location
+# uses geocoding returns the latitude and longitude of a location as a tuple
 def find_coors(location):
     params = {
     'q': location,
@@ -130,14 +131,12 @@ def find_coors(location):
     else:
         response.raise_for_status()
 
-## testing weather returns ##
+## testing weather api calls ##
 # print(find_weather('Toronto', TEMPERATURE))
 # print(find_weather('Sydney', UV_INDEX))
 
 # returns the time in minutes before reapplying
-# complexion is one of the 6 Fitzpatrick skin types
-# uv is a positive number
-# complexion is an int between 1 to 6
+# uv is a positive integer, complexion is one of the 6 Fitzpatrick skin types (int from 1 to 6)
 def reapply_interval(uv, complexion):
     base_time = 0
     if (uv <= 5):
@@ -166,7 +165,7 @@ def recommend_sunscreen(complexion, skin_type, location):
     recommendation = co.chat(
         message=f'''You are a dermatologist. Given the following notes about a user,
         please recommend ONE non-greasy sunscreen. Indicate the name, SPF,
-        and ONE short sentence to explain for why it is suitable their skin and location needs.
+        and a SHORT explanation (under 30 words) for why it is suitable their skin and location needs.
         
         Fitzpatrick Skin Type: {complexion}
         Skin Type: {skin_type}
@@ -193,7 +192,7 @@ def structure_output(recommendation):
         co.generate,
         model="command",
         prompt_params={"recommendation": recommendation},
-        max_tokens=256,
+        max_tokens=300,
         temperature=0.2
     )
     # print(validated_response)
@@ -206,10 +205,10 @@ class Sunscreen(BaseModel):
         description="What is the SPF of the sunscreen?", 
         validators=[ValidChoices(choices=["15", "30", "45", "50"], on_fail="reask")]
     )
-    explanation: str = Field(description="Why does the sunscreen work well for patient's skin type and location?")
+    explanation: str = Field(description="Why does the sunscreen work well for patient's skin type and location?", max_length=50)
 
 ### for testing with output structure ###
 # print(recommend_sunscreen("Type 1", "dry", "San Francisco"))
 # print(recommend_sunscreen("Type 3", "dry", "Toronto"))
-# print(recommend_sunscreen("Type 2", "normal", "Toronto"))
-# recommend_sunscreen("Type 4", "acne-prone", "Australia")
+# print(recommend_sunscreen("Type 2", "oily", "China"))
+print(recommend_sunscreen("Type 4", "acne-prone", "Australia"))
