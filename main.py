@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 # endpoints and API interaction
 from flask import request, jsonify, Flask
+from flask_cors import CORS
 import requests
 
 #### constants ####
@@ -20,6 +21,8 @@ UV_INDEX = 1
 #########################################################################
 
 app = Flask(__name__)
+CORS(app, origins="http://localhost:8081")
+# export FLASK_APP=app.py (run in CLI)
 
 # Find temperature of the location
 @app.route('/temperature', methods=['GET']) # not sure how to send arguments over yet
