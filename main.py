@@ -60,7 +60,7 @@ def create_sunscreen():
         complexion = request.json.get('complexion')
         location = request.json.get('location')
         response = recommend_sunscreen(skin_type, complexion, location)
-        return jsonify({'response': response}), 200
+        return jsonify(response), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -205,10 +205,13 @@ class Sunscreen(BaseModel):
         description="What is the SPF of the sunscreen?", 
         validators=[ValidChoices(choices=["15", "30", "45", "50"], on_fail="reask")]
     )
-    explanation: str = Field(description="Why does the sunscreen work well for patient's skin type and location?", max_length=50)
+    explanation: str = Field(description="Why does the sunscreen work well for patient's skin type and location?", max_length=10)
 
 ### for testing with output structure ###
-# print(recommend_sunscreen("Type 1", "dry", "San Francisco"))
 # print(recommend_sunscreen("Type 3", "dry", "Toronto"))
-# print(recommend_sunscreen("Type 2", "oily", "China"))
-print(recommend_sunscreen("Type 4", "acne-prone", "Australia"))
+# print(recommend_sunscreen("Type 2", "oily skin", "China"))
+# print(recommend_sunscreen("Type 1", "sensitive", "Toronto"))
+# print(recommend_sunscreen("Type 1", "combination", "Toronto"))
+# print(recommend_sunscreen("Type 4", "acne-prone", "Australia"))
+# print(recommend_sunscreen("Type 2", "normal", "San Francisco"))
+# print(recommend_sunscreen("Type 4", "combination", "France"))
