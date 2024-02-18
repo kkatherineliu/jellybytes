@@ -17,13 +17,13 @@ Things needed to run the backend:
 - install guardrails-ai
 - install pydantic
 - install flask
-- install pyowm
 
-Frontend (React Native/Expo ver):
-- downloade node.js
-- ^^ some weird npx expo code thing
-- ^^ follow instructions and create expo go thing
-- navigate to directory of my-app -> npm run web
+Frontend (React Native/Expo):
+- npm install
+- npm install expo@latest
+- npx expo install --fix
+- npx expo install react-native-web react-dom @expo/metro-runtime
+- npx expo start
   
 - (and then the Dart and Flutter App setup portion?)
 
