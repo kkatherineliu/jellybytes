@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 # endpoints and API interaction
 from flask import request, jsonify, Flask
-from pyowm.owm import OWM
+import requests
 
 #### constants ####
 TEMPERATURE = 0
@@ -70,22 +70,69 @@ def create_sunscreen():
 
 # location is a string of the city in Canada
 # type is either TEMPERATURE or UV_INDEX
-def find_weather(location, type): ## btw the API doesn't work
-    owm = OWM(config.api_key_owm) # still says invalid api key provided
-    geo_mgr = owm.geocoding_manager()
-    weather_mgr = owm.weather_manager()
+def find_weather(location, type): 
+    lat, lon = find_coors(location)
 
-    list_of_locations = geo_mgr.geocode(location, country='CA') # just cities in Canada for now
-    location_coors = list_of_locations[0]
-    one_call = weather_mgr.one_call(lat=location_coors.lat, lon=location_coors.lon, exclude='minutely,hourly,daily', units='metric')
-    
     if (type == TEMPERATURE):
-        return one_call.current.temperature()
-    elif (type == UV_INDEX):
-        return one_call.current.uvi()
-    
+        params = {
+        'lat': lat,
+        'lon': lon,
+        'units': 'metric',
+        'appid': config.api_key_owm
+        }
+
+        URL = 'https://api.openweathermap.org/data/2.5/weather'
+        response = requests.get(URL, params=params)
+
+        if response.status_code == 200:
+            weather_data = response.json()
+            return weather_data['main']['temp']
+        else:
+            # If the request failed, raise an exception or handle it as appropriate
+            response.raise_for_status()
+    else:
+        headers = {
+        'x-access-token': config.api_key_uv
+        }
+        params = {
+            'lat': lat,
+            'lng': lon
+        }
+        URL = 'https://api.openuv.io/api/v1/uv'
+        response = requests.get(URL, headers=headers, params=params)
+        if response.status_code == 200:
+            uv_data = response.json()
+            return uv_data['result']['uv']
+        else:
+            print(f'Failed to retrieve data: HTTP {response.status_code}') # change to throwing error
+
+# uses geocoding to find the latitude and longitude of a location
+def find_coors(location):
+    params = {
+    'q': location,
+    'appid': config.api_key_owm
+    }
+
+    # The base URL for the OpenWeatherMap Geocoding API
+    URL = 'http://api.openweathermap.org/geo/1.0/direct'
+    response = requests.get(URL, params=params)
+
+    if response.status_code == 200:
+        locations = response.json()
+        
+        # Assuming at least one location was found, print the first one
+        if locations:
+            lat = locations[0]['lat']
+            lon = locations[0]['lon']
+            return lat, lon
+        else:
+            print(f'No location found') # change to throwing error
+    else:
+        print(f'Failed to retrieve data: HTTP {response.status_code}') # change to throwing error
+
+## testing weather returns ##
 # print(find_weather('Toronto', TEMPERATURE))
-# print(find_weather('Toronto', UV_INDEX))
+# print(find_weather('Sydney', UV_INDEX))
 
 # returns the time in minutes before reapplying
 # complexion is one of the 6 Fitzpatrick skin types
