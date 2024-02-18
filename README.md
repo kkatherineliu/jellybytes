@@ -1,5 +1,5 @@
 # Sunshine Guardian
-ElleHacks 2023 - Summer Challenge
+ElleHacks 2023 - Summer Challenge ☀️
 
 Repo for frontend code: [Sunshine Guardian](https://github.com/kkatherineliu/sunshine-guardian-frontend)
 
