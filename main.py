@@ -46,8 +46,8 @@ def get_uv_index():
 def get_reapply_interval():
     try:
         uv = request.args.get('uv')
-        complexion = request.args.get('complexion')
-        response = reapply_interval(uv, complexion)
+        fitzpatrick = request.args.get('fitzpatrick')
+        response = reapply_interval(uv, fitzpatrick)
         return jsonify({'response': response}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -57,9 +57,9 @@ def get_reapply_interval():
 def create_sunscreen():
     try:
         skin_type = request.json.get('skin_type')
-        complexion = request.json.get('complexion')
+        fitzpatrick = request.json.get('fitzpatrick')
         location = request.json.get('location')
-        response = recommend_sunscreen(skin_type, complexion, location)
+        response = recommend_sunscreen(fitzpatrick, skin_type, location)
         return jsonify(response), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -136,8 +136,8 @@ def find_coors(location):
 # print(find_weather('Sydney', UV_INDEX))
 
 # returns the time in minutes before reapplying
-# uv is a positive integer, complexion is one of the 6 Fitzpatrick skin types (int from 1 to 6)
-def reapply_interval(uv, complexion):
+# uv is a positive integer, fitzpatrick is one of the 6 Fitzpatrick skin types (int from 1 to 6)
+def reapply_interval(uv, fitzpatrick):
     base_time = 0
     if (uv <= 5):
         base_time = 120
@@ -146,9 +146,9 @@ def reapply_interval(uv, complexion):
     else:
         base_time = 70
     
-    if (complexion <= 2):
+    if (fitzpatrick <= 2):
         return base_time - 20
-    elif (complexion <= 4):
+    elif (fitzpatrick <= 4):
         return base_time - 10
     else:
         return base_time
@@ -161,13 +161,13 @@ def reapply_interval(uv, complexion):
 co = cohere.Client(config.api_key_cohere)
 
 # Interacting with Cohere /chat endpoint to generate a response based on user's needs
-def recommend_sunscreen(complexion, skin_type, location):
+def recommend_sunscreen(fitzpatrick, skin_type, location):
     recommendation = co.chat(
         message=f'''You are a dermatologist. Given the following notes about a user,
         please recommend ONE non-greasy sunscreen. Indicate the name and SPF of the sunscreen. Also write a SHORT 
         explanation in under 20 words for why it is suitable their skin and location needs.
         
-        Fitzpatrick Skin Type: {complexion}
+        Fitzpatrick Skin Type: {fitzpatrick}
         Skin Type: {skin_type}
         Location: {location}''',
         model="command",
