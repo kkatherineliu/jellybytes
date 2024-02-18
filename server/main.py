@@ -1,5 +1,5 @@
 #### imports ####
-import config
+import server.config as config
 
 # LLM sunscreen recommendations
 import cohere
