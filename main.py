@@ -164,8 +164,8 @@ co = cohere.Client(config.api_key_cohere)
 def recommend_sunscreen(complexion, skin_type, location):
     recommendation = co.chat(
         message=f'''You are a dermatologist. Given the following notes about a user,
-        please recommend ONE non-greasy sunscreen. Indicate the name, SPF,
-        and a SHORT explanation (under 30 words) for why it is suitable their skin and location needs.
+        please recommend ONE non-greasy sunscreen. Indicate the name and SPF of the sunscreen. Also write a SHORT 
+        explanation in under 20 words for why it is suitable their skin and location needs.
         
         Fitzpatrick Skin Type: {complexion}
         Skin Type: {skin_type}
@@ -180,7 +180,7 @@ def recommend_sunscreen(complexion, skin_type, location):
 
 # Structuring output as a JSON for better transmission of information
 def structure_output(recommendation):
-    PROMPT = """Please extract a dictionary that contains the sunscreens's information. 
+    PROMPT = """Please extract a dictionary that contains the sunscreens's information. Keep the explanation SHORT.
     ${recommendation}
     ${gr.complete_json_suffix_v2}"""
 
@@ -205,13 +205,13 @@ class Sunscreen(BaseModel):
         description="What is the SPF of the sunscreen?", 
         validators=[ValidChoices(choices=["15", "30", "45", "50"], on_fail="reask")]
     )
-    explanation: str = Field(description="Why does the sunscreen work well for patient's skin type and location?", max_length=10)
+    explanation: str = Field(description="Why does the sunscreen work well for patient's skin type and location?")
 
-### for testing with output structure ###
+### for testing with output structure and if it actually suits the skin type ###
 # print(recommend_sunscreen("Type 3", "dry", "Toronto"))
 # print(recommend_sunscreen("Type 2", "oily skin", "China"))
 # print(recommend_sunscreen("Type 1", "sensitive", "Toronto"))
 # print(recommend_sunscreen("Type 1", "combination", "Toronto"))
 # print(recommend_sunscreen("Type 4", "acne-prone", "Australia"))
 # print(recommend_sunscreen("Type 2", "normal", "San Francisco"))
-# print(recommend_sunscreen("Type 4", "combination", "France"))
+# print(recommend_sunscreen("Type 4", "combination skin", "France"))
