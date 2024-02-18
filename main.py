@@ -70,18 +70,22 @@ def create_sunscreen():
 
 # location is a string of the city in Canada
 # type is either TEMPERATURE or UV_INDEX
-def find_weather(location, type):
-    owm = OWM(config.api_key_owm) # not activated yet so can't test
-    mgr = owm.weather_manager()
+def find_weather(location, type): ## btw the API doesn't work
+    owm = OWM(config.api_key_owm) # still says invalid api key provided
+    geo_mgr = owm.geocoding_manager()
+    weather_mgr = owm.weather_manager()
 
-    list_of_locations = mgr.geocode(location, country='CA') # just cities in Canada for now
+    list_of_locations = geo_mgr.geocode(location, country='CA') # just cities in Canada for now
     location_coors = list_of_locations[0]
-    one_call = mgr.one_call(lat=location_coors.lat, lon=location_coors.lon, exclude='minutely,hourly,daily', units='metric')
+    one_call = weather_mgr.one_call(lat=location_coors.lat, lon=location_coors.lon, exclude='minutely,hourly,daily', units='metric')
     
     if (type == TEMPERATURE):
         return one_call.current.temperature()
     elif (type == UV_INDEX):
         return one_call.current.uvi()
+    
+# print(find_weather('Toronto', TEMPERATURE))
+# print(find_weather('Toronto', UV_INDEX))
 
 # returns the time in minutes before reapplying
 # complexion is one of the 6 Fitzpatrick skin types
